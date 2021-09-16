@@ -36,7 +36,7 @@ from __future__ import annotations
 
 import gc
 from typing import Any, Union, Optional, List, Iterable, Dict, AnyStr, Callable
-from CustomDataPackage.CustomDataStructures import IndexList
+from PyCustomCollections.PyCustomCollections.CustomDataStructures import IndexList
 from collections import defaultdict
 import logging
 
