@@ -2,7 +2,7 @@
 
 ### Requiremnets
 ```shell
-python3 -m pip install --upgrade dateutil pytz six
+python3 -m pip install --upgrade pytz six
 ```
 
 ## External Parsers
