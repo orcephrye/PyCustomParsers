@@ -36,7 +36,10 @@ from __future__ import annotations
 
 import gc
 from typing import Any, Union, Optional, List, Iterable, Dict, AnyStr, Callable
-from PyCustomCollections.CustomDataStructures import IndexList
+try:
+    from PyCustomCollections.CustomDataStructures import IndexList
+except:
+    from PyCustomCollections.PyCustomCollections.CustomDataStructures import IndexList
 from collections import defaultdict
 import logging
 
