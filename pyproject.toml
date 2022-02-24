@@ -1,2 +1,3 @@
 [tool.portray]
+output_dir = "docs"
 modules = ["PyCustomParsers"]

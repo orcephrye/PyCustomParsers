@@ -1,8 +1,14 @@
-# Custom Parsers
+Custom Parsers
+==============
+
+-----
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://choosealicense.com/licenses/gpl-3.0/)
+[![Docs](https://readthedocs.org/projects/ansicolortags/badge/?version=latest)](https://orcephrye.github.io/PyCustomCustomParsers/)
 
 ### Requiremnets
-```shell
-python3 -m pip install --upgrade pytz six
+```sh
+# Install requirements (pip should point to a Python 3.7+ environment.)
+pip install -r requirements.txt
 ```
 
 ## External Parsers
