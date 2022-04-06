@@ -534,3 +534,46 @@ class BashParser(GenericInputParser, object):
                 templine.append(' '.join(resultsList[resultsLine][shortestLine:]))
                 resultsList[resultsLine] = templine
         return resultsList
+
+    @staticmethod
+    def calc_seperaters(line):
+        cSep = []
+        num = 1
+        activeCol = ""
+        for col in line:
+            if not col:
+                num += 1
+                continue
+            cSep.append((activeCol, num + len(activeCol)))
+            activeCol = col
+            num = 1
+        else:
+            if activeCol:
+                cSep.append((activeCol, num + len(activeCol)))
+        return cSep
+
+    @staticmethod
+    def buildNewLine(line, cSep, defaultSep='--'):
+        activeSepIndex = 0
+        activeNum = cSep[activeSepIndex][1]
+        num = 0
+        newLine = []
+        for word in line:
+            if not word:
+                num += 1
+                if num > activeNum:
+                    newLine.append(defaultSep)
+                    activeSepIndex += 1
+                    if activeSepIndex >= len(cSep):
+                        break
+                    activeNum = cSep[activeSepIndex][1]
+                    num = 0
+                continue
+            if word:
+                newLine.append(word)
+                num = 0
+                activeSepIndex += 1
+                if activeSepIndex >= len(cSep):
+                    break
+                activeNum = cSep[activeSepIndex][1]
+        return newLine
