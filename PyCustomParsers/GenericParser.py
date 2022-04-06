@@ -374,7 +374,7 @@ class GenericInputParser(IndexList):
 
     @staticmethod
     def convertResultsToBytes(genericInput: GenericInputParser, columnList: list, convertSpaces: Optional[bool] = None,
-                              _baseSize: Optional[list] = None) -> GenericInputParser:
+                              _baseSize: Optional[list] = None, default: int = 0) -> GenericInputParser:
         """
         Convert the results to byte notation appropriate for the value.
         You cannot undo this action and it may interfere with comparisons.
@@ -389,7 +389,8 @@ class GenericInputParser(IndexList):
             return genericInput
         for column in columnList:
             newColumn = [GenericInputParser.convertBytes(float(x), _baseSize=_baseSize).replace(' ', '_')
-                         for x in genericInput[column] if x and str(x).isdigit()]
+                         if x and str(x).isdigit() else f"{default} B"
+                         for x in genericInput[column]]
             for v in range(len(genericInput)):
                 genericInput[v][genericInput.columns[column]] = newColumn[v]
         genericInput.parseInput(source=genericInput, refreshData=True)
@@ -522,7 +523,8 @@ class BashParser(GenericInputParser, object):
         for key, value in columnSize.items():
             columnSize[key] = max(value)
         if header:
-            lines.remove(header)
+            # lines.remove(header)
+            lines.pop()
         return columnSize
 
     @staticmethod
