@@ -387,6 +387,7 @@ class GenericInputParser(IndexList):
         """
         if not genericInput or not genericInput.columns or [c for c in columnList if genericInput[c][0][-1] == 'B']:
             return genericInput
+
         for column in columnList:
             newColumn = [GenericInputParser.convertBytes(float(x), _baseSize=_baseSize).replace(' ', '_')
                          if x and str(x).isdigit() else f"{default} B"
@@ -448,6 +449,7 @@ class BashParser(GenericInputParser, object):
     def __init__(self, *args, **kwargs):
         self.setParserPluginClass(BashParser)
         self.setParserPlugin(BashParser.bashParser)
+        self.shortestLine = -1
         super(BashParser, self).__init__(*args, **kwargs)
 
     def bashParser(self, lines: Optional[Iterable] = None, header: Optional[List] = None,
@@ -463,7 +465,7 @@ class BashParser(GenericInputParser, object):
 
         lines = lines or []
         header = header or self.header
-        shortestLine = self._getShortestLine(lines, header)
+        self.shortestLine = shortestLine = self._getShortestLine(lines, header)
         lines = self._reformatOutput(lines, shortestLine)
         self.header = header = self._formatHeader(shortestLine, header)
         columns = columns or self.columns
