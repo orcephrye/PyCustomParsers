@@ -374,7 +374,7 @@ class GenericInputParser(IndexList):
 
     @staticmethod
     def convertResultsToBytes(genericInput: GenericInputParser, columnList: list, convertSpaces: Optional[bool] = None,
-                              _baseSize: Optional[list] = None, default: int = 0) -> GenericInputParser:
+                              _baseSize: str = None, default: int = 0) -> GenericInputParser:
         """
         Convert the results to byte notation appropriate for the value.
         You cannot undo this action and it may interfere with comparisons.
@@ -390,7 +390,7 @@ class GenericInputParser(IndexList):
 
         for column in columnList:
             newColumn = [GenericInputParser.convertBytes(float(x), _baseSize=_baseSize).replace(' ', '_')
-                         if x and str(x).isdigit() else f"{default} B"
+                         if x and str(x).isdigit() else f"{default}"
                          for x in genericInput[column]]
             for v in range(len(genericInput)):
                 genericInput[v][genericInput.columns[column]] = newColumn[v]
@@ -400,7 +400,7 @@ class GenericInputParser(IndexList):
         return genericInput
 
     @staticmethod
-    def convertBytes(num: Union[float, int], suffix: str = 'B', base: float = 1024.0, _baseSize: Optional[str] = None,
+    def convertBytes(num: Union[float, int], suffix: str = 'B', base: float = 1024.0, _baseSize: str = None,
                      **kwargs) -> str:
         """  Converter for bytes to whatever larger measurement is appropriate for the size  """
         baseList = [' ', ' K', ' M', ' G', ' T', ' P', ' E', ' Z']
