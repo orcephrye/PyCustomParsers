@@ -13,15 +13,16 @@
 
 from itertools import combinations
 from datetime import *
+from dateutil.tz import tzfile
+from dateutil import tz
 from dateutil.parser import *
-from pytz import reference
 import traceback
 import logging
 
 
 # logging.basicConfig(format='%(asctime)s %(levelname)s %(name)s %(funcName)s %(lineno)s %(message)s',
 #                     level=logging.DEBUG)
-# logging.basicConfig(level=logging.WARNING)
+# logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger('DateParserLine')
 
 
@@ -206,12 +207,13 @@ class DateParseLine(object):
         if not self.lineSplit:
             return None
 
-        kwargs = {'checkPast': self.checkPast, 'checkFuture': self.checkFuture, 'pastThreshold': self.pastThreshold,
-                  'futureThreshold': self.futureThreshold, 'prioritizeLargest': self.prioritizeLargest,
-                  'prioritizeAlignment': self.prioritizeAlignment}
+        kwargs = {'tzinfos': self.providedTZ, 'checkPast': self.checkPast, 'checkFuture': self.checkFuture,
+                  'pastThreshold': self.pastThreshold, 'futureThreshold': self.futureThreshold,
+                  'prioritizeLargest': self.prioritizeLargest, 'prioritizeAlignment': self.prioritizeAlignment}
 
         try:
-            firstPassResults = DateParseLine._firstPass(self.lineSplit, mode=self.mode, sliceNums=self.sliceNums)
+            firstPassResults = DateParseLine._firstPass(self.lineSplit, mode=self.mode, sliceNums=self.sliceNums,
+                                                        tzinfos=self.providedTZ)
             if self.__DEBUG__ is True:
                 self.firstPassResults = firstPassResults
                 log.debug(f'First Pass Results: {firstPassResults}')
@@ -248,7 +250,6 @@ class DateParseLine(object):
 
         except Exception as e:
             log.error(f'parseLine failed: {e}')
-            # print(f'[DEBUG]: trace for error: [{e}] - {traceback.format_exc()}')
             log.debug(f'[DEBUG]: trace for error: [{e}] - {traceback.format_exc()}')
             return False
 
@@ -295,7 +296,7 @@ class DateParseLine(object):
         if type(dateObject) is DateParseLine:
             dateObject = dateObject.dateTime
         if dateObject.tzinfo is not None and tzinfos is None:
-            tzinfos = reference.LocalTimezone()
+            tzinfos = tz.gettz('/etc/localtime') or tz.gettz('UTC')
         elif tzinfos is not None and dateObject.tzinfo is None:
             tzinfos = None
         if threshold is None:
@@ -320,7 +321,7 @@ class DateParseLine(object):
         if type(dateObject) is DateParseLine:
             dateObject = dateObject.dateTime
         if dateObject.tzinfo is not None and tzinfos is None:
-            tzinfos = reference.LocalTimezone()
+            tzinfos = tz.gettz('/etc/localtime') or tz.gettz('UTC')
         elif tzinfos is not None and dateObject.tzinfo is None:
             tzinfos = None
         if threshold is None:
@@ -345,8 +346,13 @@ class DateParseLine(object):
 
         try:
             if not checkPast and not checkFuture:
-                return parse(timeStr, tzinfos=tzinfos)
-            parsedTime = parse(timeStr, tzinfos=tzinfos)
+                parsedTime = parse(timeStr)
+                if parsedTime.tzinfo:
+                    return parsedTime
+                return parsedTime.replace(tzinfo=tzinfos)
+            parsedTime = parse(timeStr)
+            if not parsedTime.tzinfo:
+                parsedTime = parsedTime.replace(tzinfo=tzinfos)
             pastThreshold = kwargs.get('pastThreshold', DateParseLine.defaultPastThreshold)
             if checkPast and DateParseLine.inPast(parsedTime, threshold=pastThreshold, tzinfos=tzinfos):
                 return None
@@ -359,9 +365,8 @@ class DateParseLine(object):
                 return DateParseLine.safeParse(timeStr.strip(':'), tzinfos=tzinfos, checkPast=checkPast,
                                                checkFuture=checkFuture, **kwargs)
         except Exception as e:
-            # print(f'[DEBUG]: (safeParse) trace for error: [{e}] - {traceback.format_exc()}')
-            # log.error(f'safeParse failed: {e}')
-            # log.debug(f'[DEBUG]: trace for error: [{e}] - {traceback.format_exc()}')
+            log.error(f'safeParse failed: {e}')
+            log.debug(f'[DEBUG]: trace for error: [{e}] - {traceback.format_exc()}')
             return None
 
     @staticmethod
@@ -398,7 +403,7 @@ class DateParseLine(object):
             pass
 
     @staticmethod
-    def _firstPass(listOfWords, mode='LOG', sliceNums=(None, None)):
+    def _firstPass(listOfWords, mode='LOG', sliceNums=(None, None), tzinfos=None):
         """ Quick pass of each word individually through the 'safeParse' method.
 
         - :param listOfWords: (list) assert each item in the list is a Str.
@@ -413,7 +418,7 @@ class DateParseLine(object):
                 if not start <= listOfWords.index(word) < end:
                     outputList.append(None)
                     continue
-                outputList.append(DateParseLine.safeParse(word.strip()))
+                outputList.append(DateParseLine.safeParse(word.strip(), tzinfos=tzinfos))
                 if outputList[-1] is not None:
                     success = True
                 elif success:
@@ -425,7 +430,7 @@ class DateParseLine(object):
                 if not start <= listOfWords.index(word) < end:
                     outputList.append(None)
                     continue
-                outputList.append(DateParseLine.safeParse(word.strip()))
+                outputList.append(DateParseLine.safeParse(word.strip(), tzinfos=tzinfos))
         return outputList
 
     @staticmethod
@@ -437,6 +442,7 @@ class DateParseLine(object):
         - :return: (dict)
         """
 
+        tzinfos = kwargs.get('tzinfos', None)
         checkPast = kwargs.get('checkPast', True)
         checkFuture = kwargs.get('checkFuture', True)
         pastThreshold = kwargs.get('pastThreshold', DateParseLine.defaultPastThreshold)
@@ -470,8 +476,9 @@ class DateParseLine(object):
         def parseGroup(group):
             for combo in group:
                 comboStr = ''.join(combo).strip()
-                tmpTime = DateParseLine.safeParse(comboStr, checkFuture=checkFuture, checkPast=checkPast,
-                                                  pastThreshold=pastThreshold, futureThreshold=futureThreshold)
+                tmpTime = DateParseLine.safeParse(comboStr, tzinfos=tzinfos, checkFuture=checkFuture,
+                                                  checkPast=checkPast, pastThreshold=pastThreshold,
+                                                  futureThreshold=futureThreshold)
                 if tmpTime is not None:
                     if type(combo) is not list:
                         combo = [combo]
@@ -509,6 +516,7 @@ class DateParseLine(object):
         - :return: (list)
         """
 
+        tzinfos = kwargs.get('tzinfos', None)
         checkPast = kwargs.get('checkPast', True)
         checkFuture = kwargs.get('checkFuture', True)
         pastThreshold = kwargs.get('pastThreshold', DateParseLine.defaultPastThreshold)
@@ -543,7 +551,7 @@ class DateParseLine(object):
                 passed = False
                 if right and canGoRight(finialCombo[-1], orgList):
                     rightParse = DateParseLine.safeParse(''.join(orgList[finialCombo[0]:finialCombo[-1] + 1]).strip(),
-                                                         checkFuture=checkFuture, checkPast=checkPast,
+                                                         tzinfos=tzinfos, checkFuture=checkFuture, checkPast=checkPast,
                                                          pastThreshold=pastThreshold, futureThreshold=futureThreshold)
                     if rightParse is not None:
                         finialCombo = (finialCombo[0], finialCombo[-1] + 1)
@@ -553,7 +561,7 @@ class DateParseLine(object):
                         right = False
                 if left and canGoLeft(finialCombo[0]):
                     leftParse = DateParseLine.safeParse(''.join(orgList[finialCombo[0] - 1:finialCombo[-1]]).strip(),
-                                                        checkFuture=checkFuture, checkPast=checkPast,
+                                                        tzinfos=tzinfos, checkFuture=checkFuture, checkPast=checkPast,
                                                         pastThreshold=pastThreshold, futureThreshold=futureThreshold)
                     if leftParse is not None:
                         finialCombo = (finialCombo[0] - 1, finialCombo[-1])

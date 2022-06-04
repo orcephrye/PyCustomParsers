@@ -374,7 +374,7 @@ class GenericInputParser(IndexList):
 
     @staticmethod
     def convertResultsToBytes(genericInput: GenericInputParser, columnList: list, convertSpaces: Optional[bool] = None,
-                              _baseSize: Optional[list] = None) -> GenericInputParser:
+                              _baseSize: str = None, default: int = 0) -> GenericInputParser:
         """
         Convert the results to byte notation appropriate for the value.
         You cannot undo this action and it may interfere with comparisons.
@@ -387,9 +387,11 @@ class GenericInputParser(IndexList):
         """
         if not genericInput or not genericInput.columns or [c for c in columnList if genericInput[c][0][-1] == 'B']:
             return genericInput
+
         for column in columnList:
             newColumn = [GenericInputParser.convertBytes(float(x), _baseSize=_baseSize).replace(' ', '_')
-                         for x in genericInput[column] if x and str(x).isdigit()]
+                         if x and str(x).isdigit() else f"{default}"
+                         for x in genericInput[column]]
             for v in range(len(genericInput)):
                 genericInput[v][genericInput.columns[column]] = newColumn[v]
         genericInput.parseInput(source=genericInput, refreshData=True)
@@ -398,7 +400,7 @@ class GenericInputParser(IndexList):
         return genericInput
 
     @staticmethod
-    def convertBytes(num: Union[float, int], suffix: str = 'B', base: float = 1024.0, _baseSize: Optional[str] = None,
+    def convertBytes(num: Union[float, int], suffix: str = 'B', base: float = 1024.0, _baseSize: str = None,
                      **kwargs) -> str:
         """  Converter for bytes to whatever larger measurement is appropriate for the size  """
         baseList = [' ', ' K', ' M', ' G', ' T', ' P', ' E', ' Z']
@@ -447,6 +449,7 @@ class BashParser(GenericInputParser, object):
     def __init__(self, *args, **kwargs):
         self.setParserPluginClass(BashParser)
         self.setParserPlugin(BashParser.bashParser)
+        self.shortestLine = -1
         super(BashParser, self).__init__(*args, **kwargs)
 
     def bashParser(self, lines: Optional[Iterable] = None, header: Optional[List] = None,
@@ -462,7 +465,7 @@ class BashParser(GenericInputParser, object):
 
         lines = lines or []
         header = header or self.header
-        shortestLine = self._getShortestLine(lines, header)
+        self.shortestLine = shortestLine = self._getShortestLine(lines, header)
         lines = self._reformatOutput(lines, shortestLine)
         self.header = header = self._formatHeader(shortestLine, header)
         columns = columns or self.columns
@@ -522,7 +525,8 @@ class BashParser(GenericInputParser, object):
         for key, value in columnSize.items():
             columnSize[key] = max(value)
         if header:
-            lines.remove(header)
+            # lines.remove(header)
+            lines.pop()
         return columnSize
 
     @staticmethod
