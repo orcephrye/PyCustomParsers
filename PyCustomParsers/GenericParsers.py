@@ -392,9 +392,9 @@ class GenericInputParser(IndexedTable):
         return genericInput
 
     @staticmethod
-    def convert_results_to_bytes(genericInput: GenericInputParser, columnList: list, 
+    def convert_results_to_bytes(genericInput: GenericInputParser, columnList: list,
                                  convertSpaces: Optional[bool] = None,
-                                 _baseSize: Optional[list] = None) -> GenericInputParser:
+                                 _baseSize: str = None, default: int = 0) -> GenericInputParser:
         """
         Convert the results to byte notation appropriate for the value.
         You cannot undo this action and it may interfere with comparisons.
@@ -407,14 +407,16 @@ class GenericInputParser(IndexedTable):
         """
         if not genericInput or not genericInput.columns or [c for c in columnList if genericInput[c][0][-1] == 'B']:
             return genericInput
+
         for column in columnList:
-            newColumn = [GenericInputParser.convert_bytes(float(x), _baseSize=_baseSize).replace(' ', '_')
-                         for x in genericInput[column] if x and str(x).isdigit()]
+            newColumn = [GenericInputParser.convertBytes(float(x), _baseSize=_baseSize).replace(' ', '_')
+                         if x and str(x).isdigit() else f"{default}"
+                         for x in genericInput[column]]
             for v in range(len(genericInput)):
                 genericInput[v][genericInput.columns[column]] = newColumn[v]
-        genericInput.parse(source=genericInput, refreshData=True)
+        genericInput.parseInput(source=genericInput, refreshData=True)
         if not convertSpaces:
-            return GenericInputParser.convert_spaces(genericInput, columnList=columnList)
+            return GenericInputParser.convertSpacesInResults(genericInput, columnList=columnList)
         return genericInput
 
     @staticmethod
