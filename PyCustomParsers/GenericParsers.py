@@ -30,10 +30,12 @@
 from __future__ import annotations
 
 
-import gc
 from functools import partial
 from collections import defaultdict
-from PyCustomCollections.PyCustomCollections.CustomDataStructures import IndexedTable
+try:
+    from PyCustomCollections.CustomDataStructures import IndexedTable
+except:
+    from PyCustomCollections.PyCustomCollections.CustomDataStructures import IndexedTable
 from typing import Any, Union, Optional, List, Iterable, Dict, AnyStr, Callable
 import logging
 
