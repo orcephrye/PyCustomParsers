@@ -151,7 +151,7 @@ class GenericInputParser(IndexedTable):
 
     def parse(self, source: Optional[Any] = None, tail: Optional[int] = None, head: Optional[int] = None,
               exclude: Optional[bool] = None, include: Optional[bool] = None, strFormat: Optional[AnyStr] = None,
-              header: Optional[List] = None, columns: Optional[Dict] = None,
+              header: Optional[Iterable] = None, columns: Optional[Dict] = None,
               refreshData: bool = False, **kwargs) -> None:
         """
 
@@ -351,7 +351,7 @@ class GenericInputParser(IndexedTable):
             return iter(lines)
 
     @staticmethod
-    def trim_to_Columns(genericInput: GenericInputParser, columnList: Iterable) -> GenericInputParser:
+    def trim_to_Columns(genericInput: GenericInputParser, columnList: list) -> GenericInputParser:
         """ Trim the data so that only the requested columns are included
             NOTE: for command modules the genericInput will use the same parser as the main module
             this means that the update to the header update here may cause the main module to fail to print
@@ -411,19 +411,19 @@ class GenericInputParser(IndexedTable):
             return genericInput
 
         for column in columnList:
-            newColumn = [GenericInputParser.convertBytes(float(x), _baseSize=_baseSize).replace(' ', '_')
+            newColumn = [GenericInputParser.convert_bytes(float(x), _baseSize=_baseSize).replace(' ', '_')
                          if x and str(x).isdigit() else f"{default}"
                          for x in genericInput[column]]
             for v in range(len(genericInput)):
                 genericInput[v][genericInput.columns[column]] = newColumn[v]
-        genericInput.parseInput(source=genericInput, refreshData=True)
+        genericInput.parse(source=genericInput, refreshData=True)
         if not convertSpaces:
-            return GenericInputParser.convertSpacesInResults(genericInput, columnList=columnList)
+            return GenericInputParser.convert_spaces(genericInput, columnList=columnList)
         return genericInput
 
     @staticmethod
-    def convert_bytes(num: Union[float, int], suffix: str = 'B', base: float = 1024.0, _baseSize: Optional[str] = None,
-                     **kwargs) -> str:
+    def convert_bytes(num: Union[float, int], suffix: str = 'B', base: float = 1024.0,
+                      _baseSize: Optional[str] = None, **kwargs) -> str:
         """  Converter for bytes to whatever larger measurement is appropriate for the size  """
         baseList = [' ', ' K', ' M', ' G', ' T', ' P', ' E', ' Z']
         if _baseSize:
@@ -476,6 +476,11 @@ class BashParser(GenericInputParser):
         if not isinstance(lines, list):
             lines = list(lines)
         header = header or self.header
+        if type(header) is int:
+            for i, line in enumerate(lines):
+                if i == header:
+                    header = line
+                    break
         shortestLine = self._get_shortest_line(lines, header)
         lines = self._reformat_output(lines, shortestLine)
         self.header = header = self._format_header(shortestLine, header)
