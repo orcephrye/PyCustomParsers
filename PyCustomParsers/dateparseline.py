@@ -13,7 +13,6 @@
 
 from itertools import combinations
 from datetime import *
-from dateutil.tz import tzfile
 from dateutil import tz
 from dateutil.parser import *
 import traceback
